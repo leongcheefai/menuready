@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import * as Form from '@radix-ui/react-form'
 import * as Label from '@radix-ui/react-label'
-import { UploadIcon, CheckCircledIcon, CrossCircledIcon, ReloadIcon } from '@radix-ui/react-icons'
+import * as Dialog from '@radix-ui/react-dialog'
+import { UploadIcon, CheckCircledIcon, CrossCircledIcon, ReloadIcon, Cross2Icon } from '@radix-ui/react-icons'
 
 function App() {
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [submittedEmail, setSubmittedEmail] = useState('')
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -33,7 +36,8 @@ function App() {
       const data = await response.json()
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'AI photos generated successfully!' })
+        setSubmittedEmail(email)
+        setDialogOpen(true)
         e.currentTarget.reset()
         setFile(null)
       } else {
@@ -199,6 +203,51 @@ function App() {
           </Form.Root>
         </div>
       </div>
+
+      {/* Success Dialog */}
+      <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <Dialog.Content className="fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] max-w-md w-[90vw] bg-gradient-to-br from-slate-900 to-slate-800 border border-accent-500/30 rounded-2xl shadow-2xl p-6 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-accent-500 to-accent-600 rounded-full flex items-center justify-center mb-4">
+                <CheckCircledIcon className="w-8 h-8 text-white" />
+              </div>
+
+              <Dialog.Title className="text-2xl font-bold text-white mb-2">
+                Upload Successful!
+              </Dialog.Title>
+
+              <Dialog.Description className="text-slate-300 mb-6">
+                We've received your menu and started processing it. Your stunning menu-ready photos will be sent to:
+              </Dialog.Description>
+
+              <div className="bg-white/10 backdrop-blur rounded-lg px-4 py-3 mb-6 border border-accent-500/20">
+                <p className="text-primary-400 font-semibold text-lg">{submittedEmail}</p>
+              </div>
+
+              <p className="text-sm text-slate-400 mb-6">
+                This usually takes 5-10 minutes. Check your inbox soon!
+              </p>
+
+              <Dialog.Close asChild>
+                <button className="w-full px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold rounded-lg shadow-lg hover:from-primary-700 hover:to-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all">
+                  Got it!
+                </button>
+              </Dialog.Close>
+            </div>
+
+            <Dialog.Close asChild>
+              <button
+                className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+                aria-label="Close"
+              >
+                <Cross2Icon className="w-5 h-5" />
+              </button>
+            </Dialog.Close>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   )
 }
