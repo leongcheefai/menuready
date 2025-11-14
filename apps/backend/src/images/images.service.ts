@@ -1,6 +1,6 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,13 +15,17 @@ import { TransformResponseDto } from './dto/transform-response.dto';
 export class ImagesService {
   private readonly logger = new Logger(ImagesService.name);
   private readonly uploadDir: string;
-  private readonly geminiApiKey: string;
-  private readonly geminiApiUrl: string;
+  private readonly genAI: GoogleGenerativeAI;
 
   constructor(private configService: ConfigService) {
     this.uploadDir = this.configService.get<string>('UPLOAD_DIR') || 'uploads';
-    this.geminiApiKey = this.configService.get<string>('GEMINI_API_KEY');
-    this.geminiApiUrl = this.configService.get<string>('GEMINI_API_URL');
+    const geminiApiKey = this.configService.get<string>('GEMINI_API_KEY');
+
+    if (!geminiApiKey) {
+      throw new Error('GEMINI_API_KEY is not configured');
+    }
+
+    this.genAI = new GoogleGenerativeAI(geminiApiKey);
 
     // Ensure upload directory exists
     this.ensureUploadDirectory();
@@ -35,9 +39,7 @@ export class ImagesService {
     }
   }
 
-  async transformImage(
-    dto: TransformImageDto,
-  ): Promise<TransformResponseDto> {
+  async transformImage(dto: TransformImageDto): Promise<TransformResponseDto> {
     const startTime = Date.now();
 
     try {
@@ -107,57 +109,103 @@ export class ImagesService {
     format: ImageFormat,
   ): Promise<Buffer> {
     try {
-      // Convert image buffer to base64 for API request
+      this.logger.log(
+        `Calling Google Generative AI (gemini-2.5-flash-image) with prompt: "${prompt}"`,
+      );
+
+      // Use Gemini 2.5 Flash Image model for image transformation
+      const model = this.genAI.getGenerativeModel({
+        model: 'gemini-2.5-flash-image',
+      });
+
+      // Convert image buffer to base64
       const base64Image = imageBuffer.toString('base64');
 
-      this.logger.log(
-        `Calling Gemini Nano Banana API with prompt: "${prompt}"`,
-      );
+      // Determine MIME type based on the image buffer (simple detection)
+      const mimeType = this.detectMimeType(imageBuffer);
 
-      // Make API request to Gemini Nano Banana
-      const response = await axios.post(
-        this.geminiApiUrl,
+      // Generate transformed image using both the uploaded image and text prompt
+      const result = await model.generateContent([
         {
-          image: base64Image,
-          prompt: prompt,
-          quality: quality,
-          output_format: format,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${this.geminiApiKey}`,
+          inlineData: {
+            data: base64Image,
+            mimeType: mimeType,
           },
-          timeout: 60000, // 60 second timeout
         },
-      );
+        {
+          text: prompt,
+        },
+      ]);
 
-      // Check response
-      if (!response.data || !response.data.transformed_image) {
-        throw new Error('Invalid response from Gemini API');
+      const response = await result.response;
+
+      // Get the generated image
+      if (
+        !response ||
+        !response.candidates ||
+        response.candidates.length === 0
+      ) {
+        throw new Error('No image generated from Gemini API');
       }
 
-      // Convert base64 response back to buffer
+      const candidate = response.candidates[0];
+      if (
+        !candidate.content ||
+        !candidate.content.parts ||
+        candidate.content.parts.length === 0
+      ) {
+        throw new Error('Invalid response structure from Gemini API');
+      }
+
+      // Extract image data from the response
+      const imagePart = candidate.content.parts.find((part) => part.inlineData);
+      if (!imagePart || !imagePart.inlineData) {
+        throw new Error('No image data in Gemini API response');
+      }
+
+      // Convert base64 response to buffer
       const transformedImageBuffer = Buffer.from(
-        response.data.transformed_image,
+        imagePart.inlineData.data,
         'base64',
       );
 
-      this.logger.log('Successfully received transformed image from Gemini API');
+      this.logger.log(
+        'Successfully received transformed image from Gemini API',
+      );
 
       return transformedImageBuffer;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        const message = error.response?.data?.message || error.message;
-        this.logger.error(
-          `Gemini API request failed (${status}): ${message}`,
-          error.stack,
-        );
-        throw new Error(`Gemini API error: ${message}`);
-      }
-      throw error;
+      this.logger.error(
+        `Gemini API request failed: ${error.message}`,
+        error.stack,
+      );
+      throw new Error(`Gemini API error: ${error.message}`);
     }
+  }
+
+  private detectMimeType(buffer: Buffer): string {
+    // Detect MIME type from the buffer's magic bytes
+    if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+      return 'image/jpeg';
+    } else if (
+      buffer[0] === 0x89 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x4e &&
+      buffer[3] === 0x47
+    ) {
+      return 'image/png';
+    } else if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
+      return 'image/gif';
+    } else if (
+      buffer[0] === 0x52 &&
+      buffer[1] === 0x49 &&
+      buffer[2] === 0x46 &&
+      buffer[3] === 0x46
+    ) {
+      return 'image/webp';
+    }
+    // Default to JPEG if unable to detect
+    return 'image/jpeg';
   }
 
   private generateFilename(format: ImageFormat): string {
