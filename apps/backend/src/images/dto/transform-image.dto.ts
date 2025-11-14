@@ -20,7 +20,7 @@ export class TransformImageDto {
   @IsOptional()
   @IsString()
   prompt?: string =
-    'professional food photography for menu-ready images, bright lighting, appetizing';
+    'extract the food out and turn it into a great production studio food photography for a restaurant menu';
 
   @IsOptional()
   @IsEnum(ImageQuality)

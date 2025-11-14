@@ -2,7 +2,7 @@ import { useState } from 'react'
 import * as Form from '@radix-ui/react-form'
 import * as Label from '@radix-ui/react-label'
 import * as Dialog from '@radix-ui/react-dialog'
-import { UploadIcon, CheckCircledIcon, CrossCircledIcon, ReloadIcon, Cross2Icon } from '@radix-ui/react-icons'
+import { UploadIcon, CheckCircledIcon, CrossCircledIcon, ReloadIcon, Cross2Icon, MagicWandIcon } from '@radix-ui/react-icons'
 
 function App() {
   const [file, setFile] = useState<File | null>(null)
@@ -10,6 +10,9 @@ function App() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [submittedEmail, setSubmittedEmail] = useState('')
+  const [originalImage, setOriginalImage] = useState<string | null>(null)
+  const [transformedImage, setTransformedImage] = useState<string | null>(null)
+  const [transforming, setTransforming] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -53,77 +56,149 @@ function App() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0])
+      const selectedFile = e.target.files[0]
+      setFile(selectedFile)
       setMessage(null)
+
+      // Create preview URL for the original image
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setOriginalImage(reader.result as string)
+      }
+      reader.readAsDataURL(selectedFile)
+
+      // Reset transformed image
+      setTransformedImage(null)
+    }
+  }
+
+  const handleTransformImage = async () => {
+    if (!file || !originalImage) {
+      setMessage({ type: 'error', text: 'Please upload an image first' })
+      return
+    }
+
+    setTransforming(true)
+    setMessage(null)
+
+    try {
+      // Convert file to base64
+      const base64Image = originalImage.split(',')[1]
+
+      const response = await fetch('http://localhost:3000/api/images/transform', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: base64Image,
+          quality: 'high',
+          format: 'png',
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Set the transformed image URL
+        setTransformedImage(`http://localhost:3000${data.filePath}`)
+        setMessage({ type: 'success', text: 'Image transformed successfully!' })
+      } else {
+        setMessage({ type: 'error', text: data.message || 'Failed to transform image' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error connecting to server' })
+      console.error('Error:', error)
+    } finally {
+      setTransforming(false)
     }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-6xl">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold bg-gradient-to-r from-primary-400 via-primary-500 to-accent-400 bg-clip-text text-transparent mb-3">
             MenuReady
           </h1>
           <p className="text-slate-300 text-lg">
-            Upload your photos and we will generate stunning menu-ready photos
+            Upload a food photo and transform it into a menu-ready image
           </p>
         </div>
 
-        {/* Form Card */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-accent-500/30">
-          <Form.Root onSubmit={handleSubmit} className="space-y-6">
-            {/* Email Field */}
-            <Form.Field name="email" className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label.Root
-                  htmlFor="email"
-                  className="text-sm font-medium text-slate-200"
-                >
-                  Email Address
-                </Label.Root>
-                <Form.Message
-                  match="valueMissing"
-                  className="text-xs text-primary-400"
-                >
-                  Please enter your email
-                </Form.Message>
-                <Form.Message
-                  match="typeMismatch"
-                  className="text-xs text-primary-400"
-                >
-                  Please provide a valid email
-                </Form.Message>
+        {/* Image Viewer Section */}
+        {originalImage && (
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-accent-500/30 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Original Image */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-slate-200">Original Image</h3>
+                <div className="aspect-square w-full bg-slate-800 rounded-lg overflow-hidden border border-white/10">
+                  <img
+                    src={originalImage}
+                    alt="Original"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </div>
-              <Form.Control asChild>
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  required
-                  disabled={loading}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-              </Form.Control>
-            </Form.Field>
 
+              {/* Transformed Image */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-slate-200">Transformed Image</h3>
+                <div className="aspect-square w-full bg-slate-800 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center">
+                  {transformedImage ? (
+                    <img
+                      src={transformedImage}
+                      alt="Transformed"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <p className="text-slate-400 text-sm">No transformation yet</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Transform Button */}
+            <button
+              onClick={handleTransformImage}
+              disabled={transforming}
+              className="w-full mt-6 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-accent-600 to-accent-500 text-white font-semibold rounded-lg shadow-lg hover:from-accent-700 hover:to-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {transforming ? (
+                <>
+                  <ReloadIcon className="h-5 w-5 animate-spin" />
+                  Transforming...
+                </>
+              ) : (
+                <>
+                  <MagicWandIcon className="h-5 w-5" />
+                  Transform Image
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Upload Card */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-accent-500/30">
+          <div className="space-y-6">
             {/* File Upload Field */}
-            <Form.Field name="file" className="space-y-2">
+            <div className="space-y-2">
               <Label.Root
                 htmlFor="file-input"
                 className="text-sm font-medium text-slate-200"
               >
-                Menu File
+                Upload Food Image
               </Label.Root>
               <div className="relative">
                 <input
                   id="file-input"
                   type="file"
                   onChange={handleFileChange}
-                  accept="image/*,.pdf"
-                  required
-                  disabled={loading}
+                  accept="image/*"
+                  disabled={transforming}
                   className="hidden"
                 />
                 <label
@@ -132,7 +207,7 @@ function App() {
                     flex items-center justify-center w-full px-4 py-8
                     border-2 border-dashed border-white/20 rounded-lg
                     cursor-pointer transition-all
-                    ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary-400 hover:bg-primary-500/10'}
+                    ${transforming ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary-400 hover:bg-primary-500/10'}
                     ${file ? 'bg-accent-500/10 border-accent-400' : ''}
                   `}
                 >
@@ -148,38 +223,17 @@ function App() {
                     ) : (
                       <>
                         <p className="text-sm text-slate-300">
-                          Click to upload or drag and drop
+                          Click to upload an image
                         </p>
                         <p className="text-xs text-slate-400 mt-1">
-                          Images or PDF (Max 10MB)
+                          JPG, PNG, GIF, or WebP (Max 10MB)
                         </p>
                       </>
                     )}
                   </div>
                 </label>
               </div>
-            </Form.Field>
-
-            {/* Submit Button */}
-            <Form.Submit asChild>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold rounded-lg shadow-lg hover:from-primary-700 hover:to-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-primary-600 disabled:hover:to-primary-500"
-              >
-                {loading ? (
-                  <>
-                    <ReloadIcon className="h-5 w-5 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <UploadIcon className="h-5 w-5" />
-                    Generate AI Photos
-                  </>
-                )}
-              </button>
-            </Form.Submit>
+            </div>
 
             {/* Message Display */}
             {message && (
@@ -200,54 +254,9 @@ function App() {
                 <p className="text-sm">{message.text}</p>
               </div>
             )}
-          </Form.Root>
+          </div>
         </div>
       </div>
-
-      {/* Success Dialog */}
-      <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-          <Dialog.Content className="fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] max-w-md w-[90vw] bg-gradient-to-br from-slate-900 to-slate-800 border border-accent-500/30 rounded-2xl shadow-2xl p-6 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-accent-500 to-accent-600 rounded-full flex items-center justify-center mb-4">
-                <CheckCircledIcon className="w-8 h-8 text-white" />
-              </div>
-
-              <Dialog.Title className="text-2xl font-bold text-white mb-2">
-                Upload Successful!
-              </Dialog.Title>
-
-              <Dialog.Description className="text-slate-300 mb-6">
-                We've received your menu and started processing it. Your stunning menu-ready photos will be sent to:
-              </Dialog.Description>
-
-              <div className="bg-white/10 backdrop-blur rounded-lg px-4 py-3 mb-6 border border-accent-500/20">
-                <p className="text-primary-400 font-semibold text-lg">{submittedEmail}</p>
-              </div>
-
-              <p className="text-sm text-slate-400 mb-6">
-                This usually takes 5-10 minutes. Check your inbox soon!
-              </p>
-
-              <Dialog.Close asChild>
-                <button className="w-full px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold rounded-lg shadow-lg hover:from-primary-700 hover:to-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all">
-                  Got it!
-                </button>
-              </Dialog.Close>
-            </div>
-
-            <Dialog.Close asChild>
-              <button
-                className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
-                aria-label="Close"
-              >
-                <Cross2Icon className="w-5 h-5" />
-              </button>
-            </Dialog.Close>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
     </div>
   )
 }

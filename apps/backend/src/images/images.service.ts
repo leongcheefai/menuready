@@ -139,27 +139,50 @@ export class ImagesService {
 
       const response = await result.response;
 
+      // Log the full response structure for debugging
+      this.logger.debug(
+        `Full Gemini API response: ${JSON.stringify(response, null, 2)}`,
+      );
+
       // Get the generated image
       if (
         !response ||
         !response.candidates ||
         response.candidates.length === 0
       ) {
+        this.logger.error(
+          `No candidates in response. Response: ${JSON.stringify(response)}`,
+        );
         throw new Error('No image generated from Gemini API');
       }
 
       const candidate = response.candidates[0];
+      this.logger.debug(
+        `Candidate: ${JSON.stringify(candidate, null, 2)}`,
+      );
+
       if (
         !candidate.content ||
         !candidate.content.parts ||
         candidate.content.parts.length === 0
       ) {
+        this.logger.error(
+          `Invalid candidate structure. Candidate: ${JSON.stringify(candidate)}`,
+        );
         throw new Error('Invalid response structure from Gemini API');
       }
+
+      // Log parts to see what we're getting
+      this.logger.debug(
+        `Parts: ${JSON.stringify(candidate.content.parts, null, 2)}`,
+      );
 
       // Extract image data from the response
       const imagePart = candidate.content.parts.find((part) => part.inlineData);
       if (!imagePart || !imagePart.inlineData) {
+        this.logger.error(
+          `No image data found in parts. Parts: ${JSON.stringify(candidate.content.parts)}`,
+        );
         throw new Error('No image data in Gemini API response');
       }
 
