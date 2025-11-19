@@ -89,7 +89,13 @@ npm run test:debug
 - **TypeScript Config**: Uses project references (`tsconfig.json` → `tsconfig.app.json` for app code, `tsconfig.node.json` for Vite config)
 - **Linting**: ESLint 9 with flat config (`eslint.config.js`)
 - **Entry Point**: `src/main.tsx` → `src/App.tsx`
-- **Current State**: Scaffolded Vite + React template with minimal boilerplate
+- **Styling**: Tailwind CSS 4.1.17 with Vite plugin (`@tailwindcss/vite`)
+- **UI Components**: Radix UI primitives for accessible, unstyled components
+  - `@radix-ui/react-dialog` - Modal dialogs
+  - `@radix-ui/react-form` - Form primitives
+  - `@radix-ui/react-label` - Form labels
+  - `@radix-ui/react-icons` - Icon set
+- **Current State**: Scaffolded Vite + React template with Tailwind CSS and Radix UI components
 
 ### Backend (NestJS)
 
@@ -137,4 +143,10 @@ npm run test:debug
 
 4. **React patterns**: Frontend uses functional components with hooks. No state management library is currently configured.
 
-5. **No database configured**: Backend has no ORM or database connection configured yet.
+5. **Styling approach**:
+   - **Tailwind CSS 4**: Utility-first CSS framework for rapid UI development
+   - **Radix UI**: Unstyled, accessible component primitives that can be styled with Tailwind
+   - Components should be built using Radix UI primitives for accessibility and styled with Tailwind utility classes
+   - Tailwind is integrated via the Vite plugin for optimal performance
+
+6. **No database configured**: Backend has no ORM or database connection configured yet.
