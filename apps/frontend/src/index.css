@@ -225,3 +225,11 @@ html {
 .border-primary { border-color: #1A1A1A; }
 .border-accent { border-color: #FF6B35; }
 .border-light { border-color: #FFF7F4; }
+
+/* Hover color utilities */
+.hover\:text-accent:hover { color: #FF6B35; }
+.hover\:text-primary:hover { color: #1A1A1A; }
+.hover\:text-light:hover { color: #FFF7F4; }
+.hover\:bg-accent:hover { background-color: #FF6B35; }
+.hover\:bg-primary:hover { background-color: #1A1A1A; }
+.hover\:bg-light:hover { background-color: #FFF7F4; }

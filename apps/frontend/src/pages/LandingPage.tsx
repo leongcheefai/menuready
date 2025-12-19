@@ -137,19 +137,31 @@ export default function LandingPage() {
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${scrolled ? 'bg-[#FFF7F4] border-b-3 border-primary' : 'bg-transparent'}`}>
         <div className="grid grid-cols-3 items-center px-6 py-4">
           {/* Left - Links */}
-          <div className="flex items-center gap-6">
-            <a
-              href="#features"
-              className={`text-xs tracking-[0.2em] uppercase font-bold hover:opacity-70 transition-opacity hidden sm:block ${scrolled ? 'text-primary' : 'text-light'}`}
+          <div className="flex items-center gap-12">
+            <button
+              onClick={() => {
+                const el = document.getElementById('features')
+                if (el) {
+                  const y = el.getBoundingClientRect().top + window.scrollY - NAV_HEIGHT
+                  window.scrollTo({ top: y, behavior: 'smooth' })
+                }
+              }}
+              className={`text-xs tracking-[0.2em] uppercase font-bold hover:text-accent transition-colors hidden sm:block ${scrolled ? 'text-primary' : 'text-light'}`}
             >
               Features
-            </a>
-            <a
-              href="#pricing"
-              className={`text-xs tracking-[0.2em] uppercase font-bold hover:opacity-70 transition-opacity hidden sm:block ${scrolled ? 'text-primary' : 'text-light'}`}
+            </button>
+            <button
+              onClick={() => {
+                const el = document.getElementById('pricing')
+                if (el) {
+                  const y = el.getBoundingClientRect().top + window.scrollY - NAV_HEIGHT
+                  window.scrollTo({ top: y, behavior: 'smooth' })
+                }
+              }}
+              className={`text-xs tracking-[0.2em] uppercase font-bold hover:text-accent transition-colors hidden sm:block ${scrolled ? 'text-primary' : 'text-light'}`}
             >
               Pricing
-            </a>
+            </button>
           </div>
 
           {/* Center - Logo (hidden until hero text animation completes) */}
@@ -228,6 +240,65 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* How It Works */}
+      <section className="border-b-3 border-primary">
+        <div className="p-8 md:p-16 border-b-3 border-primary">
+          <h2 className="text-5xl md:text-7xl tracking-[0.05em] text-center" style={{ fontFamily: 'Belanosima, sans-serif' }}>easy as 1, 2, 3</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3">
+          {/* Step 1 */}
+          <div className="p-8 md:p-12 flex flex-col items-center text-center">
+            <div className="w-20 h-20 bg-accent text-light flex items-center justify-center text-4xl mb-6 rounded-full" style={{ fontFamily: 'Belanosima, sans-serif' }}>
+              1
+            </div>
+            <h3 className="text-2xl md:text-3xl font-semibold mb-4" style={{ fontFamily: 'Belanosima, sans-serif' }}>
+              Take a Photo
+            </h3>
+            <p className="text-sm md:text-base opacity-70 max-w-xs">
+              Snap a photo of your products with your phone or camera
+            </p>
+          </div>
+
+          {/* Arrow 1 - Hidden on mobile, shown as decorative element */}
+          <div className="hidden md:flex absolute left-1/3 top-1/2 -translate-y-1/2 -translate-x-1/2 text-accent text-4xl z-10">
+          </div>
+
+          {/* Step 2 */}
+          <div className="p-8 md:p-12 flex flex-col items-center text-center relative">
+            {/* Arrow before */}
+            <div className="hidden md:block absolute -left-6 top-1/2 -translate-y-1/2 text-accent text-5xl" style={{ fontFamily: 'Belanosima, sans-serif' }}>
+              →
+            </div>
+            <div className="w-20 h-20 bg-accent text-light flex items-center justify-center text-4xl mb-6 rounded-full" style={{ fontFamily: 'Belanosima, sans-serif' }}>
+              2
+            </div>
+            <h3 className="text-2xl md:text-3xl font-semibold mb-4" style={{ fontFamily: 'Belanosima, sans-serif' }}>
+              Select Labels
+            </h3>
+            <p className="text-sm md:text-base opacity-70 max-w-xs">
+              Choose labels that fit your creative idea and style
+            </p>
+          </div>
+
+          {/* Step 3 */}
+          <div className="p-8 md:p-12 flex flex-col items-center text-center relative">
+            {/* Arrow before */}
+            <div className="hidden md:block absolute -left-6 top-1/2 -translate-y-1/2 text-accent text-5xl" style={{ fontFamily: 'Belanosima, sans-serif' }}>
+              →
+            </div>
+            <div className="w-20 h-20 bg-accent text-light flex items-center justify-center text-4xl mb-6 rounded-full" style={{ fontFamily: 'Belanosima, sans-serif' }}>
+              ✓
+            </div>
+            <h3 className="text-2xl md:text-3xl font-semibold mb-4" style={{ fontFamily: 'Belanosima, sans-serif' }}>
+              Done!
+            </h3>
+            <p className="text-sm md:text-base opacity-70 max-w-xs">
+              Get your professional studio-quality photos instantly
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section id="pricing" className="border-b-3 border-primary">
         <div className="p-8 md:p-16 border-b-3 border-primary">
@@ -282,6 +353,32 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-b-3 border-primary">
+        {/* Newsletter Section */}
+        <div className="px-8 py-12 md:px-16 border-b-3 border-primary">
+          <div className="max-w-xl mx-auto text-center">
+            <h3 className="text-2xl md:text-3xl mb-3" style={{ fontFamily: 'Belanosima, sans-serif' }}>
+              Subscribe to our newsletter
+            </h3>
+            <p className="text-sm opacity-70 mb-6">
+              Get the latest updates, tips, and exclusive offers delivered to your inbox.
+            </p>
+            <form className="flex flex-col sm:flex-row gap-3" onSubmit={(e) => e.preventDefault()}>
+              <input
+                type="email"
+                placeholder="Enter your email"
+                className="flex-1 px-4 py-3 border-3 border-primary bg-transparent text-sm focus:outline-none focus:border-accent transition-colors"
+              />
+              <button
+                type="submit"
+                className="px-6 py-3 bg-accent text-white text-sm font-bold tracking-[0.1em] uppercase border-3 border-accent hover:bg-[#FF8855] hover:border-[#FF8855] transition-colors"
+              >
+                Subscribe
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Footer Links */}
         <div className="px-8 py-12 md:px-16 flex flex-col md:flex-row justify-between items-start gap-8">
           {/* Left - Logo and Copyright */}
           <div className="flex flex-col gap-2">
