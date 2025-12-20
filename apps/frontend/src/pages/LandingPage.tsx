@@ -391,7 +391,7 @@ export default function LandingPage() {
                 className={`
                   w-full py-4 text-lg tracking-[0.1em] uppercase border-3 transition-all rounded-none
                   ${plan.featured
-                    ? 'bg-primary text-accent border-primary hover:bg-accent hover:text-primary hover:border-accent'
+                    ? 'bg-primary text-accent border-primary hover:bg-accent hover:text-primary hover:border-primary'
                     : 'bg-accent text-primary border-accent hover:bg-primary hover:text-accent hover:border-primary'
                   }
                 `}

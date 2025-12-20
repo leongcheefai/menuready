@@ -1,314 +1,176 @@
-import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { UploadIcon, ReloadIcon, Cross2Icon, CheckIcon, ExitIcon } from '@radix-ui/react-icons'
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
+import { Link } from 'react-router-dom'
+import { ArrowRightIcon, ImageIcon, UploadIcon, RocketIcon, CalendarIcon, LightningBoltIcon } from '@radix-ui/react-icons'
+import { useAuth } from '../context/AuthContext'
+import { useProjects } from '../context/ProjectContext'
 
 export default function AppPage() {
-  const [file, setFile] = useState<File | null>(null)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [originalImage, setOriginalImage] = useState<string | null>(null)
-  const [transformedImage, setTransformedImage] = useState<string | null>(null)
-  const [transforming, setTransforming] = useState(false)
-  const [isDragging, setIsDragging] = useState(false)
-  const [user, setUser] = useState<{ email: string; name: string } | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    const auth = localStorage.getItem('kyureto_auth')
-    if (!auth) {
-      navigate('/')
-      return
-    }
-    setUser(JSON.parse(auth))
-  }, [navigate])
-
-  const handleLogout = () => {
-    localStorage.removeItem('kyureto_auth')
-    navigate('/')
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      processFile(e.target.files[0])
-    }
-  }
-
-  const processFile = (selectedFile: File) => {
-    setFile(selectedFile)
-    setMessage(null)
-
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setOriginalImage(reader.result as string)
-    }
-    reader.readAsDataURL(selectedFile)
-    setTransformedImage(null)
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      processFile(e.dataTransfer.files[0])
-    }
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = () => {
-    setIsDragging(false)
-  }
-
-  const handleTransformImage = async () => {
-    if (!file || !originalImage) {
-      setMessage({ type: 'error', text: 'UPLOAD AN IMAGE FIRST' })
-      return
-    }
-
-    setTransforming(true)
-    setMessage(null)
-
-    try {
-      const base64Image = originalImage.split(',')[1]
-
-      const response = await fetch(`${BACKEND_URL}/api/images/transform`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image: base64Image,
-          quality: 'high',
-          format: 'png',
-        }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setTransformedImage(`${BACKEND_URL}${data.filePath}`)
-        setMessage({ type: 'success', text: 'TRANSFORMATION COMPLETE' })
-      } else {
-        setMessage({ type: 'error', text: data.message || 'TRANSFORMATION FAILED' })
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'CONNECTION ERROR' })
-      console.error('Error:', error)
-    } finally {
-      setTransforming(false)
-    }
-  }
-
-  const clearImage = () => {
-    setFile(null)
-    setOriginalImage(null)
-    setTransformedImage(null)
-    setMessage(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-  }
+  const { user } = useAuth()
+  const { renders } = useProjects()
 
   if (!user) return null
 
+  const recent = [...renders].slice(-8).reverse()
+  const planLabel = user.plan.toUpperCase()
+  const transformsLimit = user.plan === 'starter' ? 5 : user.plan === 'pro' ? Infinity : Infinity
+  const transformsUsed = user.transformsUsed ?? 0
+  const usagePct = transformsLimit === Infinity ? 0 : Math.min((transformsUsed / transformsLimit) * 100, 100)
+
   return (
-    <div className="min-h-screen bg-light noise">
-      {/* Header */}
-      <header className="border-b-3 border-primary">
-        <div className="flex items-center justify-between px-6 py-4">
-          <span className="text-4xl tracking-[0.05em] font-semibold" style={{ fontFamily: 'Belanosima, sans-serif' }}>kyureto</span>
-          <div className="flex items-center gap-4">
-            <span className="text-sm tracking-wide hidden sm:block">
-              {user.name}
-            </span>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 border-3 border-primary hover:bg-primary hover:text-light transition-colors text-sm tracking-[0.1em] uppercase"
-            >
-              <ExitIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
+    <div className="space-y-12 pb-12">
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <p className="text-xs tracking-[0.3em] uppercase opacity-50 mb-2 font-bold">
+            Dashboard / Overview
+          </p>
+          <h1
+            className="text-6xl md:text-8xl tracking-tight leading-none"
+            style={{ fontFamily: 'Belanosima, sans-serif' }}
+          >
+            Hi, <span className="text-accent">{user.name.split(' ')[0]}</span>
+          </h1>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right hidden md:block">
+            <p className="text-xs uppercase tracking-widest opacity-50 font-bold mb-1">Status</p>
+            <p className="text-sm font-bold flex items-center gap-2 justify-end">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              PRO READY
+            </p>
           </div>
         </div>
       </header>
 
-      {/* Main Layout */}
-      <div className="grid grid-cols-12 min-h-[calc(100vh-65px)]">
-        {/* Left Sidebar */}
-        <div className="col-span-1 border-r-3 border-primary hidden lg:flex flex-col justify-between py-8">
-          <div className="rotate-90 origin-center translate-y-16">
-            <span className="text-display text-lg tracking-[0.5em] whitespace-nowrap">STUDIO</span>
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Quick Action Card */}
+        <Link 
+          to="/app/upload" 
+          className="card-brutal bg-accent p-8 flex flex-col justify-between group hover:-translate-x-1 hover:-translate-y-1 transition-transform cursor-pointer min-h-[280px]"
+        >
+          <div>
+            <div className="w-12 h-12 border-3 border-primary bg-light flex items-center justify-center mb-6 group-hover:rotate-12 transition-transform">
+              <UploadIcon className="w-6 h-6" />
+            </div>
+            <h3 className="text-3xl font-display mb-2">Start a Transform</h3>
+            <p className="text-sm opacity-80 font-medium">Upload your product photo and let AI do the magic.</p>
           </div>
-          <div className="rotate-90 origin-center -translate-y-12">
-            <span className="text-xs tracking-[0.3em] opacity-50">V1.0</span>
+          <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-sm mt-4">
+            Get Started <ArrowRightIcon className="group-hover:translate-x-1 transition-transform" />
           </div>
+        </Link>
+
+        {/* Usage Card */}
+        <div className="card-brutal p-8 flex flex-col justify-between min-h-[280px]">
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div className="w-12 h-12 border-3 border-primary bg-primary text-light flex items-center justify-center">
+                <LightningBoltIcon className="w-6 h-6" />
+              </div>
+              <span className="px-3 py-1 border-3 border-primary font-bold text-xs tracking-widest uppercase">
+                {planLabel}
+              </span>
+            </div>
+            <h3 className="text-3xl font-display mb-4">Usage</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-end">
+                <span className="text-sm font-bold uppercase tracking-widest opacity-60">Transforms</span>
+                <span className="text-2xl font-display">
+                  {transformsLimit === Infinity ? `${transformsUsed}` : `${transformsUsed}/${transformsLimit}`}
+                </span>
+              </div>
+              {transformsLimit !== Infinity && (
+                <div className="h-6 border-3 border-primary bg-light overflow-hidden p-1">
+                  <div 
+                    className="h-full bg-accent border-r-3 border-primary transition-all duration-500" 
+                    style={{ width: `${usagePct}%` }} 
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          <p className="text-[10px] uppercase tracking-widest opacity-50 font-bold mt-4">
+            Resets on {user.billingDate}
+          </p>
         </div>
 
-        {/* Main Content */}
-        <div className="col-span-12 lg:col-span-11 flex flex-col">
-          {/* Upload & Transform Section */}
-          <main className="flex-1 grid grid-cols-1 lg:grid-cols-2">
-            {/* Upload Zone */}
-            <div className="border-b-3 lg:border-b-0 lg:border-r-3 border-primary p-6 md:p-12 flex flex-col">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-display text-3xl tracking-[0.1em] uppercase">Input</h2>
-                {originalImage && (
-                  <button
-                    onClick={clearImage}
-                    className="p-2 border-3 border-primary hover:bg-primary hover:text-light transition-colors"
-                    aria-label="Clear image"
-                  >
-                    <Cross2Icon className="w-5 h-5" />
-                  </button>
-                )}
+        {/* Info Card */}
+        <div className="card-brutal p-8 flex flex-col justify-between md:col-span-2 lg:col-span-1 min-h-[280px]">
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 border-3 border-primary flex items-center justify-center bg-blue-100">
+                <CalendarIcon className="w-5 h-5" />
               </div>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                onChange={handleFileChange}
-                accept="image/*"
-                className="hidden"
-                id="file-input"
-              />
-
-              {!originalImage ? (
-                <label
-                  htmlFor="file-input"
-                  onDrop={handleDrop}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  className={`
-                    flex-1 border-3 border-dashed border-black flex flex-col items-center justify-center
-                    cursor-pointer transition-all min-h-[300px]
-                    ${isDragging ? 'bg-primary text-light' : 'hover:bg-primary hover:text-light'}
-                  `}
-                >
-                  <UploadIcon className="w-16 h-16 mb-6" />
-                  <span className="text-display text-2xl tracking-[0.2em] uppercase mb-2">
-                    {isDragging ? 'DROP IT' : 'DROP FILE'}
-                  </span>
-                  <span className="text-xs tracking-[0.1em] opacity-60">
-                    OR CLICK TO BROWSE
-                  </span>
-                </label>
-              ) : (
-                <div className="flex-1 flex flex-col">
-                  <div className="flex-1 border-3 border-primary overflow-hidden bg-light">
-                    <img
-                      src={originalImage}
-                      alt="Original product"
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  {file && (
-                    <div className="mt-4 flex items-center justify-between border-3 border-primary p-3">
-                      <span className="text-xs tracking-wide truncate flex-1 mr-4 font-bold uppercase">
-                        {file.name}
-                      </span>
-                      <span className="text-xs tracking-wider opacity-60">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Output Zone */}
-            <div className="p-6 md:p-12 flex flex-col bg-light">
-              <h2 className="text-display text-3xl tracking-[0.1em] uppercase mb-6">Output</h2>
-
-              <div className="flex-1 border-3 border-primary bg-light flex items-center justify-center min-h-[300px] overflow-hidden">
-                {transformedImage ? (
-                  <img
-                    src={transformedImage}
-                    alt="Transformed product"
-                    className="w-full h-full object-contain"
-                  />
-                ) : transforming ? (
-                  <div className="text-center">
-                    <div className="w-12 h-12 border-3 border-primary brutal-spin mx-auto mb-4"></div>
-                    <span className="text-display text-xl tracking-[0.2em] uppercase">
-                      PROCESSING
-                    </span>
-                  </div>
-                ) : (
-                  <div className="text-center p-8">
-                    <div className="w-24 h-24 border-3 border-dashed border-primary/30 mx-auto mb-6 flex items-center justify-center">
-                      <span className="text-4xl opacity-20">?</span>
-                    </div>
-                    <span className="text-xs tracking-[0.2em] uppercase opacity-40">
-                      AWAITING TRANSFORMATION
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Transform Button */}
-              <button
-                onClick={handleTransformImage}
-                disabled={!originalImage || transforming}
-                className="btn-brutal mt-6 w-full flex items-center justify-center gap-3"
-              >
-                {transforming ? (
-                  <>
-                    <ReloadIcon className="w-5 h-5 brutal-spin" />
-                    TRANSFORMING...
-                  </>
-                ) : (
-                  <>
-                    <span className="text-2xl">→</span>
-                    TRANSFORM
-                  </>
-                )}
-              </button>
-
-              {/* Message Display */}
-              {message && (
-                <div
-                  className={`
-                    mt-4 p-4 border-3 flex items-center gap-3
-                    ${message.type === 'success'
-                      ? 'border-black bg-primary text-light'
-                      : 'border-black bg-light'
-                    }
-                  `}
-                >
-                  {message.type === 'success' ? (
-                    <CheckIcon className="w-5 h-5 flex-shrink-0" />
-                  ) : (
-                    <Cross2Icon className="w-5 h-5 flex-shrink-0" />
-                  )}
-                  <span className="text-xs tracking-[0.1em] font-bold uppercase">
-                    {message.text}
-                  </span>
-                </div>
-              )}
-            </div>
-          </main>
-
-          {/* Footer */}
-          <footer className="border-t-3 border-primary">
-            <div className="grid grid-cols-12">
-              <div className="col-span-6 md:col-span-3 p-4 border-r-3 border-primary">
-                <span className="text-xs tracking-[0.2em] opacity-50">© 2025</span>
-              </div>
-              <div className="col-span-6 md:col-span-6 p-4 border-r-0 md:border-r-3 border-primary">
-                <span className="text-xs tracking-[0.2em]">KYURETO STUDIO</span>
-              </div>
-              <div className="hidden md:block col-span-3 p-4">
-                <span className="text-xs tracking-[0.2em] opacity-50">BRUTALIST EDITION</span>
+              <div>
+                <p className="text-[10px] uppercase tracking-widest opacity-50 font-bold">Member Since</p>
+                <p className="font-bold">January 2025</p>
               </div>
             </div>
-          </footer>
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 border-3 border-primary flex items-center justify-center bg-purple-100">
+                <RocketIcon className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-widest opacity-50 font-bold">Current Speed</p>
+                <p className="font-bold text-accent">Ultra HD Rendering</p>
+              </div>
+            </div>
+          </div>
+          <Link to="/app/library" className="btn-brutal-invert w-full text-center py-4 mt-4 flex items-center justify-center gap-2 group">
+            <ImageIcon className="w-4 h-4" />
+            View Library
+          </Link>
         </div>
       </div>
+
+      {/* Recent Activity */}
+      <section>
+        <div className="flex items-center justify-between mb-8 border-b-3 border-primary pb-4">
+          <h2 className="text-4xl font-display uppercase tracking-tight">Recent Renders</h2>
+          <Link 
+            to="/app/library" 
+            className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:text-accent transition-colors"
+          >
+            View All <ArrowRightIcon className="w-3 h-3" />
+          </Link>
+        </div>
+
+        {recent.length === 0 ? (
+          <div className="card-brutal border-dashed bg-primary/5 p-20 flex flex-col items-center justify-center text-center">
+            <div className="w-20 h-20 border-3 border-primary border-dashed flex items-center justify-center mb-6 opacity-30">
+              <ImageIcon className="w-10 h-10" />
+            </div>
+            <h3 className="text-2xl font-display mb-2">No Renders Yet</h3>
+            <p className="text-sm opacity-60 max-w-xs mb-8">
+              Your creative journey starts here. Upload a photo to see it transformed by AI.
+            </p>
+            <Link to="/app/upload" className="btn-brutal flex items-center gap-3">
+              <UploadIcon className="w-5 h-5" />
+              First Upload
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-6">
+            {recent.map((r) => (
+              <Link
+                key={r.id}
+                to="/app/library"
+                className="group relative aspect-square border-3 border-primary bg-light overflow-hidden shadow-brutal-sm hover:shadow-brutal hover:-translate-x-1 hover:-translate-y-1 transition-all"
+              >
+                <img 
+                  src={r.thumbnail} 
+                  alt={r.projectName} 
+                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" 
+                />
+                <div className="absolute inset-0 bg-primary/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 text-center">
+                  <p className="text-light font-display text-lg mb-1">{r.projectName}</p>
+                  <p className="text-accent text-[10px] uppercase tracking-widest font-bold">{r.createdAt}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   )
 }

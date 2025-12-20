@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Cross2Icon, EyeOpenIcon, EyeClosedIcon } from '@radix-ui/react-icons'
+import { useAuth } from '../context/AuthContext'
 
 interface AuthModalProps {
   mode: 'login' | 'signup' | null
@@ -16,6 +17,7 @@ export default function AuthModal({ mode, onClose, onSwitch, onSuccess }: AuthMo
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,8 +27,8 @@ export default function AuthModal({ mode, onClose, onSwitch, onSuccess }: AuthMo
     // Simulate auth - replace with actual auth logic
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    // For now, just store a fake token and proceed
-    localStorage.setItem('kyureto_auth', JSON.stringify({ email, name: name || email.split('@')[0] }))
+    // Use AuthContext to login
+    login(email, name || email.split('@')[0])
     setLoading(false)
     onSuccess()
   }
@@ -42,7 +44,7 @@ export default function AuthModal({ mode, onClose, onSwitch, onSuccess }: AuthMo
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b-3 border-primary">
               <Dialog.Title className="text-display text-3xl tracking-[0.1em]">
-                {isLogin ? 'LOGIN' : 'SIGN UP'}
+                {isLogin ? 'Login' : 'Sign Up'}
               </Dialog.Title>
               <Dialog.Close asChild>
                 <button className="p-2 border-3 border-primary hover:bg-primary hover:text-light transition-colors">
@@ -125,10 +127,10 @@ export default function AuthModal({ mode, onClose, onSwitch, onSuccess }: AuthMo
                 {loading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-orange-50/30 border-t-orange-50 brutal-spin"></div>
-                    {isLogin ? 'LOGGING IN...' : 'SIGNING UP...'}
+                    {isLogin ? 'Logging in...' : 'Signing up...'}
                   </>
                 ) : (
-                  isLogin ? 'LOGIN' : 'CREATE ACCOUNT'
+                  isLogin ? 'Login' : 'Create Account'
                 )}
               </button>
             </form>
@@ -152,4 +154,3 @@ export default function AuthModal({ mode, onClose, onSwitch, onSuccess }: AuthMo
     </Dialog.Root>
   )
 }
-

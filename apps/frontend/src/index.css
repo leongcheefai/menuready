@@ -15,7 +15,7 @@
 
 :root {
   font-family: "Inter", sans-serif;
-  --border-weight: 3px;
+  --border-weight: 1.5px;
   --primary: #1A1A1A;
   --accent: #FF6B35;
   --light: #FFF7F4;
@@ -60,12 +60,11 @@ html {
   background-color: #FF6B35;
   color: #1A1A1A;
   font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  border: 3px solid #FF6B35;
+  letter-spacing: 0.05em;
+  border: 1.5px solid #FF6B35;
   transition: all 0.15s;
   font-family: "Inter", sans-serif;
-  font-size: 1.25rem;
+  font-size: 1rem;
 }
 
 .btn-brutal:hover {
@@ -89,7 +88,7 @@ html {
 .btn-brutal-invert {
   background-color: #FFF7F4;
   color: #1A1A1A;
-  border: 3px solid #1A1A1A;
+  border: 1.5px solid #1A1A1A;
 }
 
 .btn-brutal-invert:hover {
@@ -100,7 +99,7 @@ html {
 /* Brutal card */
 .card-brutal {
   background-color: #FFF7F4;
-  border: 3px solid #1A1A1A;
+  border: 1.5px solid #1A1A1A;
   box-shadow: 8px 8px 0 #1A1A1A;
 }
 
@@ -109,7 +108,7 @@ html {
   width: 100%;
   padding: 0.75rem 1rem;
   background-color: #FFF7F4;
-  border: 3px solid #1A1A1A;
+  border: 1.5px solid #1A1A1A;
   color: #1A1A1A;
   font-family: "Inter", sans-serif;
 }
